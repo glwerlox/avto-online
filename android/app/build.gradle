@@ -39,19 +39,5 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
-}
-
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.exists()) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found")
-}
-
-try {
-    apply from: 'capacitor.build.gradle'
-} catch (Exception e) {
-    logger.info("capacitor.build.gradle not found")
+    implementation 'androidx.webkit:webkit:1.8.0'
 }
