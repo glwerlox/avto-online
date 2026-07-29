@@ -32,23 +32,13 @@ jobs:
           cp index.html style.css game.js www/
           npx cap sync android
 
-      - name: Decode Keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/my-release-key.jks
-
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
-      - name: Build Release APK
+      - name: Build Unsigned Release APK
         working-directory: android
         run: |
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=app/my-release-key.jks \
-            -Pandroid.injected.signing.store.password=password123 \
-            -Pandroid.injected.signing.key.alias=my-alias \
-            -Pandroid.injected.signing.key.password=password123 \
-            --no-daemon \
-            --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
