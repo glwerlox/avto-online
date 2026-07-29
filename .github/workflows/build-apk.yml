@@ -26,11 +26,15 @@ jobs:
 
       - name: Create Web Distribution & Sync Capacitor
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap add android || true
+          npm install --save @capacitor/core @capacitor/android
+          npm install --save-dev @capacitor/cli
           mkdir -p www
           cp index.html style.css game.js www/
           npx cap sync android
+
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/my-release-key.jks
 
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
