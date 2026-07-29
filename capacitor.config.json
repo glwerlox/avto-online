@@ -1,0 +1,6 @@
+{
+  "appId": "com.avtoonline.pdd",
+  "appName": "Avto Online",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

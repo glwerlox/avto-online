@@ -19,20 +19,27 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          gradle-version: '8.2.1'
+          node-version: '20'
 
-      - name: Decode Keystore
+      - name: Create Web Distribution & Sync Capacitor
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/my-release-key.jks
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap add android || true
+          mkdir -p www
+          cp index.html style.css game.js www/
+          npx cap sync android
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
 
       - name: Build Release APK
         working-directory: android
         run: |
-          gradle assembleRelease \
-            -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/android/app/my-release-key.jks \
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=app/my-release-key.jks \
             -Pandroid.injected.signing.store.password=password123 \
             -Pandroid.injected.signing.key.alias=my-alias \
             -Pandroid.injected.signing.key.password=password123 \
