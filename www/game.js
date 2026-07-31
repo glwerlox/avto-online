@@ -105,21 +105,21 @@ function renderTickets() {
   const container = document.getElementById('tickets-list');
   container.innerHTML = '';
 
-  for (let i = 1; i <= 44; i++) {
+  for (let i = 1; i <= 62; i++) {
     const card = document.createElement('div');
     card.className = 'ticket-card';
     card.onclick = () => loadTicket(i);
     card.innerHTML = `
       <div class="num">${currentLang === 'uz' ? i + '-Bilet' : 'Билет ' + i}</div>
-      <div class="sub">28 ${currentLang === 'uz' ? 'Savol' : 'Вопросов'}</div>
+      <div class="sub">20 ${currentLang === 'uz' ? 'Savol' : 'Вопросов'}</div>
     `;
     container.appendChild(card);
   }
 }
 
 function loadTicket(ticketNum) {
-  const start = (ticketNum - 1) * 28;
-  const end = Math.min(start + 28, ALL_QUESTIONS.length);
+  const start = (ticketNum - 1) * 20;
+  const end = Math.min(start + 20, ALL_QUESTIONS.length);
   
   activeQuestions = ALL_QUESTIONS.slice(start, end);
   if (activeQuestions.length === 0) {
