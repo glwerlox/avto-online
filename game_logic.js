@@ -1,11 +1,22 @@
-/* AVTO ONLINE - FULL LOGIC WITH INTERSECTION SIMULATOR & PERSISTENT STATS */
+/* AVTO ONLINE - ADVANCED ENGINE WITH TICKET COLORS, MISTAKES, BOOKMARKS & NUMBER QUESTIONS */
 
 let currentLang = 'uz';
 let activeQuestions = [];
 let currentQIdx = 0;
+
 let stats = { solved: 0, correct: 0, wrong: 0 };
+let ticketResults = {}; // { [ticketNum]: { mistakes: N, total: 20 } }
+let wrongQuestionIds = []; // Array of question IDs
+let bookmarkQuestionIds = []; // Array of question IDs
+let numberQuestionsList = []; // Pre-computed array of number-based questions
+
 let examTimer = null;
 let secondsLeft = 900;
+
+// SESSION CONTEXT
+let currentSessionType = 'ticket'; // 'ticket', 'exam', 'mistakes', 'bookmarks', 'numbers'
+let currentTicketNum = 1;
+let currentTicketMistakes = 0;
 
 // SIMULATOR STATE
 let simCurrentLevel = 0;
@@ -38,28 +49,42 @@ const SCENARIOS = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadStatsFromStorage();
+  loadDataFromStorage();
+  initNumberQuestions();
   renderTickets();
+  updateMistakesUI();
+  updateBookmarksUI();
+  updateNumbersUI();
   initSimCanvas();
   loadSimLevel(0);
 });
 
-// --- PERSISTENT STORAGE FOR STATS ---
-function loadStatsFromStorage() {
-  const saved = localStorage.getItem('avto_online_stats_v2');
-  if (saved) {
-    try {
-      stats = JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
+// --- PERSISTENT STORAGE ---
+function loadDataFromStorage() {
+  try {
+    const sStats = localStorage.getItem('avto_online_stats_v3');
+    if (sStats) stats = JSON.parse(sStats);
+
+    const sTickets = localStorage.getItem('avto_ticket_results_v3');
+    if (sTickets) ticketResults = JSON.parse(sTickets);
+
+    const sWrong = localStorage.getItem('avto_wrong_q_ids_v3');
+    if (sWrong) wrongQuestionIds = JSON.parse(sWrong);
+
+    const sBookmarks = localStorage.getItem('avto_bookmark_q_ids_v3');
+    if (sBookmarks) bookmarkQuestionIds = JSON.parse(sBookmarks);
+  } catch (e) {
+    console.error('Error loading storage:', e);
   }
+
   updateStatsUI();
 }
 
-function saveStatsToStorage() {
-  localStorage.setItem('avto_online_stats_v2', JSON.stringify(stats));
-  updateStatsUI();
+function saveDataToStorage() {
+  localStorage.setItem('avto_online_stats_v3', JSON.stringify(stats));
+  localStorage.setItem('avto_ticket_results_v3', JSON.stringify(ticketResults));
+  localStorage.setItem('avto_wrong_q_ids_v3', JSON.stringify(wrongQuestionIds));
+  localStorage.setItem('avto_bookmark_q_ids_v3', JSON.stringify(bookmarkQuestionIds));
 }
 
 function updateStatsUI() {
@@ -71,6 +96,42 @@ function updateStatsUI() {
   document.getElementById('st-pct').innerText = pct + '%';
 }
 
+// --- NUMBER QUESTIONS INITIALIZATION ---
+function initNumberQuestions() {
+  if (typeof ALL_QUESTIONS === 'undefined') return;
+
+  const pattern = /\d|\b(bir|ikki|uch|to['’`]?rt|besh|olti|yetti|sakkiz|to['’`]?qqiz|o['’`]?n|yigirma|o['’`]?ttiz|qirq|elli|ellik|oltmish|yetmish|sakson|to['’`]?qson|yuz|ming|birinchi|ikkinchi|uchinchi|to['’`]?rtinchi|beshinchi|oltinchi|yettinchi|sakkizinchi|to['’`]?qqizinchi|o['’`]?ninchi|один|одна|одно|два|две|три|четыре|пять|шесть|семь|восемь|девять|десять|двадцать|тридцать|сорок|пятьдесят|шестьдесят|семьдесят|восемьдесят|девяносто|сто|тысяч|первый|второй|третий|четвертый|пятый|шестой|седьмой|восьмой|девятый|десятый|метр|км|минут|секунд)\b/i;
+
+  numberQuestionsList = ALL_QUESTIONS.filter(q => {
+    const textUz = q.question.uz + ' ' + q.options.map(o => o.uz).join(' ');
+    const textRu = q.question.ru + ' ' + q.options.map(o => o.ru).join(' ');
+    return pattern.test(textUz) || pattern.test(textRu);
+  });
+
+  updateNumbersUI();
+}
+
+function updateNumbersUI() {
+  const el = document.getElementById('numbers-count');
+  if (el) el.innerText = numberQuestionsList.length;
+}
+
+function updateMistakesUI() {
+  const el = document.getElementById('mistakes-count');
+  if (el) el.innerText = wrongQuestionIds.length;
+
+  const btn = document.getElementById('btn-start-mistakes');
+  if (btn) btn.disabled = (wrongQuestionIds.length === 0);
+}
+
+function updateBookmarksUI() {
+  const el = document.getElementById('bookmarks-count');
+  if (el) el.innerText = bookmarkQuestionIds.length;
+
+  const btn = document.getElementById('btn-start-bookmarks');
+  if (btn) btn.disabled = (bookmarkQuestionIds.length === 0);
+}
+
 // --- TABS & NAVIGATION ---
 function showTab(tabName) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -79,9 +140,11 @@ function showTab(tabName) {
   document.getElementById('tab-' + tabName).classList.add('active');
   event.currentTarget.classList.add('active');
 
-  if (tabName === 'sim') {
-    setTimeout(drawSimRoads, 100);
-  }
+  if (tabName === 'tickets') renderTickets();
+  if (tabName === 'mistakes') updateMistakesUI();
+  if (tabName === 'bookmarks') updateBookmarksUI();
+  if (tabName === 'numbers') updateNumbersUI();
+  if (tabName === 'sim') setTimeout(drawSimRoads, 100);
 }
 
 function toggleTheme() {
@@ -98,7 +161,7 @@ function toggleLanguage() {
   loadSimLevel(simCurrentLevel);
 }
 
-// --- BILETLAR ---
+// --- 62 BILETLAR WITH COLOR CODING ---
 function renderTickets() {
   const container = document.getElementById('tickets-list');
   container.innerHTML = '';
@@ -107,15 +170,45 @@ function renderTickets() {
     const card = document.createElement('div');
     card.className = 'ticket-card';
     card.onclick = () => loadTicket(i);
+
+    const res = ticketResults[i];
+    let colorClass = '';
+    let statusBadge = '';
+
+    if (res) {
+      const m = res.mistakes;
+      if (m <= 1) {
+        colorClass = 'ticket-status-green';
+        statusBadge = `<span class="status-tag">🟢 ${m} ${currentLang === 'uz' ? 'xato' : 'ош.'}</span>`;
+      } else if (m === 2) {
+        colorClass = 'ticket-status-yellow';
+        statusBadge = `<span class="status-tag">🟡 ${m} ${currentLang === 'uz' ? 'xato' : 'ош.'}</span>`;
+      } else if (m === 3 || m === 4) {
+        colorClass = 'ticket-status-red';
+        statusBadge = `<span class="status-tag">🔴 ${m} ${currentLang === 'uz' ? 'xato' : 'ош.'}</span>`;
+      } else {
+        colorClass = 'ticket-status-darkred';
+        statusBadge = `<span class="status-tag">🟤 ${m}+ ${currentLang === 'uz' ? 'xato' : 'ош.'}</span>`;
+      }
+    }
+
+    if (colorClass) card.classList.add(colorClass);
+
     card.innerHTML = `
       <div class="num">${currentLang === 'uz' ? i + '-Bilet' : 'Билет ' + i}</div>
       <div class="sub">20 ${currentLang === 'uz' ? 'Savol' : 'Вопросов'}</div>
+      ${statusBadge}
     `;
     container.appendChild(card);
   }
 }
 
+// --- LOAD SESSIONS ---
 function loadTicket(ticketNum) {
+  currentSessionType = 'ticket';
+  currentTicketNum = ticketNum;
+  currentTicketMistakes = 0;
+
   const start = (ticketNum - 1) * 20;
   const end = Math.min(start + 20, ALL_QUESTIONS.length);
   
@@ -128,8 +221,8 @@ function loadTicket(ticketNum) {
   openQuizView();
 }
 
-// --- IMTIHON ---
 function startExamSession() {
+  currentSessionType = 'exam';
   const copy = [...ALL_QUESTIONS].sort(() => 0.5 - Math.random());
   activeQuestions = copy.slice(0, 20);
 
@@ -138,6 +231,37 @@ function startExamSession() {
 
   openQuizView();
   startTimer();
+}
+
+function startMistakesSession() {
+  if (wrongQuestionIds.length === 0) return;
+  currentSessionType = 'mistakes';
+
+  activeQuestions = ALL_QUESTIONS.filter(q => wrongQuestionIds.includes(q.id));
+  currentQIdx = 0;
+
+  openQuizView();
+}
+
+function startBookmarksSession() {
+  if (bookmarkQuestionIds.length === 0) return;
+  currentSessionType = 'bookmarks';
+
+  activeQuestions = ALL_QUESTIONS.filter(q => bookmarkQuestionIds.includes(q.id));
+  currentQIdx = 0;
+
+  openQuizView();
+}
+
+function startNumbersSession() {
+  if (numberQuestionsList.length === 0) return;
+  currentSessionType = 'numbers';
+
+  const copy = [...numberQuestionsList].sort(() => 0.5 - Math.random());
+  activeQuestions = copy.slice(0, 20);
+  currentQIdx = 0;
+
+  openQuizView();
 }
 
 function openQuizView() {
@@ -166,6 +290,7 @@ function startTimer() {
   }, 1000);
 }
 
+// --- RENDER & ANSWER QUESTION ---
 function renderQuestion() {
   const q = activeQuestions[currentQIdx];
   if (!q) return;
@@ -174,6 +299,20 @@ function renderQuestion() {
   document.getElementById('q-total').innerText = activeQuestions.length;
   document.getElementById('progress-fill').style.width = `${((currentQIdx + 1) / activeQuestions.length) * 100}%`;
 
+  // Update Bookmark button status
+  const bmBtn = document.getElementById('btn-bookmark');
+  const bmText = document.getElementById('bookmark-text');
+  const isBookmarked = bookmarkQuestionIds.includes(q.id);
+
+  if (isBookmarked) {
+    bmBtn.classList.add('saved');
+    bmText.innerText = currentLang === 'uz' ? 'Saqlangan' : 'Сохранено';
+  } else {
+    bmBtn.classList.remove('saved');
+    bmText.innerText = currentLang === 'uz' ? 'Saqlash' : 'Сохранить';
+  }
+
+  // Image
   const imgWrap = document.getElementById('q-img-wrap');
   const img = document.getElementById('q-img');
   if (q.photo) {
@@ -183,8 +322,10 @@ function renderQuestion() {
     imgWrap.classList.add('hidden');
   }
 
+  // Question text
   document.getElementById('q-text').innerText = q.question[currentLang] || q.question['uz'];
 
+  // Options
   const optsContainer = document.getElementById('q-options');
   optsContainer.innerHTML = '';
   document.getElementById('q-exp').classList.add('hidden');
@@ -193,24 +334,56 @@ function renderQuestion() {
     const btn = document.createElement('button');
     btn.className = 'option-btn';
     btn.innerText = opt[currentLang] || opt['uz'];
-    btn.onclick = () => selectOption(btn, opt.correct, q.explanation[currentLang] || q.explanation['uz']);
+    btn.onclick = () => selectOption(btn, opt.correct, q.explanation[currentLang] || q.explanation['uz'], q.id);
     optsContainer.appendChild(btn);
   });
 }
 
-function selectOption(btn, isCorrect, expText) {
+function toggleBookmarkCurrentQuestion() {
+  const q = activeQuestions[currentQIdx];
+  if (!q) return;
+
+  const idx = bookmarkQuestionIds.indexOf(q.id);
+  if (idx > -1) {
+    bookmarkQuestionIds.splice(idx, 1);
+  } else {
+    bookmarkQuestionIds.push(q.id);
+  }
+
+  saveDataToStorage();
+  updateBookmarksUI();
+  renderQuestion();
+}
+
+function selectOption(btn, isCorrect, expText, qId) {
   document.querySelectorAll('.option-btn').forEach(b => b.onclick = null);
 
   stats.solved++;
   if (isCorrect) {
     btn.classList.add('correct');
     stats.correct++;
+
+    // If practicing mistakes and answered correctly, remove from wrong list
+    if (currentSessionType === 'mistakes') {
+      const wIdx = wrongQuestionIds.indexOf(qId);
+      if (wIdx > -1) wrongQuestionIds.splice(wIdx, 1);
+    }
   } else {
     btn.classList.add('wrong');
     stats.wrong++;
+
+    if (currentSessionType === 'ticket') {
+      currentTicketMistakes++;
+    }
+
+    // Add to wrong questions if not already present
+    if (!wrongQuestionIds.includes(qId)) {
+      wrongQuestionIds.push(qId);
+    }
   }
 
-  saveStatsToStorage();
+  saveDataToStorage();
+  updateMistakesUI();
 
   if (expText && expText.trim() !== '') {
     document.getElementById('exp-text').innerText = expText;
@@ -224,6 +397,16 @@ function nextQuestion() {
   currentQIdx++;
   if (currentQIdx >= activeQuestions.length) {
     clearInterval(examTimer);
+
+    if (currentSessionType === 'ticket') {
+      ticketResults[currentTicketNum] = {
+        mistakes: currentTicketMistakes,
+        total: activeQuestions.length
+      };
+      saveDataToStorage();
+      renderTickets();
+    }
+
     alert(currentLang === 'uz' ? "Test yakunlandi!" : "Тест завершен!");
     closeQuizView();
   } else {
@@ -304,16 +487,13 @@ function drawSimRoads() {
   if (!simCtx) return;
   simCtx.clearRect(0, 0, simCanvas.width, simCanvas.height);
 
-  // Background
   simCtx.fillStyle = '#0f172a';
   simCtx.fillRect(0, 0, simCanvas.width, simCanvas.height);
 
-  // Roads
   simCtx.fillStyle = '#334155';
   simCtx.fillRect(0, 150, 400, 100);
   simCtx.fillRect(150, 0, 100, 400);
 
-  // Dashed lines
   simCtx.strokeStyle = '#facc15';
   simCtx.lineWidth = 2;
   simCtx.setLineDash([10, 10]);
@@ -324,7 +504,6 @@ function drawSimRoads() {
   simCtx.stroke();
   simCtx.setLineDash([]);
 
-  // Draw Cars
   const scenario = SCENARIOS[simCurrentLevel];
   scenario.cars.forEach(car => {
     const isSelected = simSelectedOrder.includes(car.id);

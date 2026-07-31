@@ -6,8 +6,9 @@
   --muted: #94a3b8;
   --blue: #3b82f6;
   --green: #22c55e;
-  --red: #ef4444;
   --yellow: #eab308;
+  --red: #ef4444;
+  --dark-red: #991b1b;
   --border: #334155;
   --radius: 16px;
 }
@@ -80,21 +81,29 @@ body {
   font-size: 13px;
 }
 
-/* NAV BAR */
+/* NAV BAR (HORIZONTALLY SCROLLABLE FOR ALL TABS) */
 .nav-bar {
   background: var(--card);
   display: flex;
+  overflow-x: auto;
+  white-space: nowrap;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 56px;
   z-index: 90;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nav-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-item {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 72px;
   background: none;
   border: none;
-  padding: 12px 4px;
+  padding: 10px 12px;
   color: var(--muted);
   display: flex;
   flex-direction: column;
@@ -150,7 +159,7 @@ body {
   color: var(--muted);
 }
 
-/* TICKETS GRID */
+/* TICKETS GRID & STATUS COLORS */
 .tickets-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -165,27 +174,70 @@ body {
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
 }
 
 .ticket-card:hover {
   background: var(--card-hover);
-  border-color: var(--blue);
   transform: translateY(-2px);
 }
 
 .ticket-card .num {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
-  color: var(--blue);
+  color: var(--text);
 }
 
 .ticket-card .sub {
   font-size: 10px;
   color: var(--muted);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
-/* CARDS */
+.ticket-card .status-tag {
+  font-size: 10px;
+  font-weight: 800;
+  margin-top: 4px;
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* COLOR RULES ACCORDING TO USER SPECIFICATIONS:
+   - 0 ta va 1 ta xato: Yashil rang
+   - 2 ta xato: Sariq rang
+   - 3 ta yoki 4 ta xato: Qizil rang
+   - 5 ta va undan ortiq xato: To'q qizil rang
+*/
+.ticket-card.ticket-status-green {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: var(--green);
+}
+.ticket-card.ticket-status-green .num { color: var(--green); }
+.ticket-card.ticket-status-green .status-tag { background: var(--green); color: white; }
+
+.ticket-card.ticket-status-yellow {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: var(--yellow);
+}
+.ticket-card.ticket-status-yellow .num { color: var(--yellow); }
+.ticket-card.ticket-status-yellow .status-tag { background: var(--yellow); color: black; }
+
+.ticket-card.ticket-status-red {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: var(--red);
+}
+.ticket-card.ticket-status-red .num { color: var(--red); }
+.ticket-card.ticket-status-red .status-tag { background: var(--red); color: white; }
+
+.ticket-card.ticket-status-darkred {
+  background: rgba(153, 27, 27, 0.35);
+  border-color: var(--dark-red);
+}
+.ticket-card.ticket-status-darkred .num { color: #fca5a5; }
+.ticket-card.ticket-status-darkred .status-tag { background: var(--dark-red); color: white; }
+
+/* CARDS & BADGES */
 .card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -204,6 +256,10 @@ body {
   margin-bottom: 10px;
 }
 
+.red-badge { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+.yellow-badge { background: rgba(234, 179, 8, 0.15); color: var(--yellow); }
+.blue-badge { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+
 .info-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -217,7 +273,6 @@ body {
   border-radius: 10px;
   padding: 10px;
   text-align: center;
-
   display: flex;
   flex-direction: column;
 }
@@ -247,12 +302,40 @@ body {
 
 .btn-primary:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
 }
 
-/* QUIZ */
+.margin-top {
+  margin-top: 16px;
+}
+
+/* BOOKMARK BUTTON IN QUIZ */
+.btn-bookmark {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.btn-bookmark.saved {
+  background: rgba(234, 179, 8, 0.2);
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+/* QUIZ TOP BAR */
 .quiz-top {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-weight: 700;
   font-size: 13px;
   margin-bottom: 10px;
@@ -354,7 +437,7 @@ body {
   font-size: 12px;
 }
 
-/* STATS */
+/* STATS GRID */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

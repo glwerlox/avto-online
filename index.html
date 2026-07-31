@@ -29,11 +29,23 @@
     </div>
   </header>
 
-  <!-- NAVIGATION BAR -->
+  <!-- HORIZONTALLY SCROLLABLE NAVIGATION BAR -->
   <nav class="nav-bar">
     <button class="nav-item active" onclick="showTab('tickets')">
       <span class="icon">📋</span>
       <span class="text">Biletlar</span>
+    </button>
+    <button class="nav-item" onclick="showTab('mistakes')">
+      <span class="icon">❌</span>
+      <span class="text">Xatolarim</span>
+    </button>
+    <button class="nav-item" onclick="showTab('bookmarks')">
+      <span class="icon">📌</span>
+      <span class="text">Saqlanganlar</span>
+    </button>
+    <button class="nav-item" onclick="showTab('numbers')">
+      <span class="icon">🔢</span>
+      <span class="text">Raqamli</span>
     </button>
     <button class="nav-item" onclick="showTab('exam')">
       <span class="icon">⏱️</span>
@@ -56,7 +68,7 @@
     <section id="tab-tickets" class="page active">
       <div class="page-head">
         <h2>62 ta Bilet (1240 Savol)</h2>
-        <p>Tayyorgarlik ko'rish uchun biletni tanlang</p>
+        <p>Rangli ko'rsatkich: 🟢 0-1 xato | 🟡 2 xato | 🔴 3-4 xato | 🟤 5+ xato</p>
       </div>
 
       <div id="tickets-list" class="tickets-grid">
@@ -64,7 +76,56 @@
       </div>
     </section>
 
-    <!-- PAGE 2: IMTIHON / QUIZ -->
+    <!-- PAGE 2: XATOLARIM -->
+    <section id="tab-mistakes" class="page">
+      <div class="page-head">
+        <h2>Xatolarim Bo'limi</h2>
+        <p>Siz xato ishlagan barcha savollar shu yerda to'planadi</p>
+      </div>
+
+      <div id="mistakes-container" class="card">
+        <div id="mistakes-welcome">
+          <div class="badge red-badge">Xatolar Banki</div>
+          <h3 id="mistakes-count-title">Xato qilingan savollar: <span id="mistakes-count">0</span> ta</h3>
+          <p id="mistakes-subtext">Bilimingizni mustahkamlash uchun xatolaringiz ustida ishlang.</p>
+          <button id="btn-start-mistakes" class="btn-primary margin-top" onclick="startMistakesSession()">✍️ Xatolarni Qayta Yechish</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 3: SAQLANGANLAR -->
+    <section id="tab-bookmarks" class="page">
+      <div class="page-head">
+        <h2>Saqlangan Savollar</h2>
+        <p>Siz belgilab qo'ygan (📌 Saqlangan) savollar ro'yxati</p>
+      </div>
+
+      <div id="bookmarks-container" class="card">
+        <div id="bookmarks-welcome">
+          <div class="badge yellow-badge">Xatcho'plar</div>
+          <h3 id="bookmarks-count-title">Saqlangan savollar: <span id="bookmarks-count">0</span> ta</h3>
+          <p id="bookmarks-subtext">Qiyin yoki muhim savollarni saqlab qo'ying.</p>
+          <button id="btn-start-bookmarks" class="btn-primary margin-top" onclick="startBookmarksSession()">📌 Saqlanganlarni Yechish</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 4: RAQAMLI SAVOLLAR -->
+    <section id="tab-numbers" class="page">
+      <div class="page-head">
+        <h2>Raqamli Savollar Bo'limi</h2>
+        <p>Masofa, tezlik, vaqt, jarima va raqamlar qatnashgan savollar</p>
+      </div>
+
+      <div class="card">
+        <div class="badge blue-badge">Raqamli PDD Testlar</div>
+        <h3 id="numbers-count-title">Raqamli savollar: <span id="numbers-count">0</span> ta</h3>
+        <p>Masofalar, tezlik cheklovlari va raqamli qoidalar bo'yicha alohida tayyorgarlik.</p>
+        <button class="btn-primary margin-top" onclick="startNumbersSession()">🔢 Raqamli Savollarni Yechish</button>
+      </div>
+    </section>
+
+    <!-- PAGE 5: IMTIHON / QUIZ -->
     <section id="tab-exam" class="page">
       <div id="exam-welcome" class="card welcome-card">
         <div class="badge">DYXX Standarti</div>
@@ -93,6 +154,11 @@
       <div id="quiz-active" class="card quiz-card hidden">
         <div class="quiz-top">
           <span id="quiz-timer" class="timer">⏱️ 15:00</span>
+          
+          <button id="btn-bookmark" class="btn-bookmark" onclick="toggleBookmarkCurrentQuestion()">
+            <span id="bookmark-icon">📌</span> <span id="bookmark-text">Saqlash</span>
+          </button>
+
           <span class="counter">Savol: <span id="q-num">1</span>/<span id="q-total">20</span></span>
         </div>
 
@@ -116,7 +182,7 @@
       </div>
     </section>
 
-    <!-- PAGE 3: CHORRAHA O'YINI -->
+    <!-- PAGE 6: CHORRAHA O'YINI -->
     <section id="tab-sim" class="page">
       <div class="card sim-card">
         <div class="badge">Interfaol O'yin</div>
@@ -137,7 +203,7 @@
       </div>
     </section>
 
-    <!-- PAGE 4: STATISTIKA -->
+    <!-- PAGE 7: STATISTIKA -->
     <section id="tab-stats" class="page">
       <div class="page-head">
         <h2>Sizning Statistakangiz</h2>
